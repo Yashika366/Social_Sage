@@ -5,6 +5,7 @@ import Features from "../components/home/Features";
 import HowItWorks from "../components/home/HowItWorks";
 import DemoDashboard from "../components/home/DemoDashboard";
 import Testimonials from "../components/home/Testimonials";
+import FAQ from "../components/home/FAQ";
 
 const Home = () => {
   return (
@@ -17,6 +18,7 @@ const Home = () => {
       <HowItWorks />
       <DemoDashboard />
       <Testimonials />
+      <FAQ/>
       {/* Next sections (DemoDashboard, Testimonials, FAQ) will be added here in this same order */}
     </>
   );

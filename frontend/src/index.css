@@ -1,38 +1,24 @@
-
 @import "tailwindcss";
 
-:root{
-  --bg:#2B2422;
-  --surface:#352B27;
-  --primary:#0F3460;
-  --accent:#E91E63;
-
-  --text:#F5EDEA;
-  --text-muted:#B9A89F;
-  --border:#4A3C36;
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-*{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  overflow-x: hidden; /* prevents horizontal scroll from anything slightly overflowing */
+  font-family: "Plus Jakarta Sans", sans-serif;
+  background-color: #1A1A2E;
+  color: #F9F9F9;
 }
 
-html{
-  scroll-behavior:smooth;
-}
-
-body{
-  background:var(--bg);
-  color:var(--text);
-  font-family:"Outfit",sans-serif;
-}
-
-a{
-  text-decoration:none;
-  color:inherit;
-}
-
-button{
-  cursor:pointer;
+/* Make sure Plus Jakarta Sans is actually applied everywhere */
+#root {
+  width: 100%;
+  min-height: 100vh;
 }
