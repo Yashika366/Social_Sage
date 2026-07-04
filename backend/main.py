@@ -1,71 +1,66 @@
-# FastAPI is the web framework - like Express.js is for Node, FastAPI is for Python
 from fastapi import FastAPI
-
-# CORSMiddleware lets our React frontend (running on port 5173) talk to this backend (running on port 8000)
-# Without CORS, browsers block requests between different ports as a security measure
 from fastapi.middleware.cors import CORSMiddleware
-
-# load_dotenv reads our .env file and makes those values available via os.getenv()
 from dotenv import load_dotenv
-
-# os lets us read environment variables (the secret keys from .env)
 import os
 
-# Load the .env file as soon as the app starts
-# After this line runs, os.getenv("YOUTUBE_API_KEY") etc will work
+# Import our database lifecycle functions
+from app.database.connection import connect_to_mongo, close_mongo_connection
+
+# Import our settings
+from app.config.settings import settings
+from app.api.youtube import router as youtube_router
+from app.api.analysis import router as analysis_router
+
 load_dotenv()
 
-# Create the FastAPI application instance
-# This 'app' object is what uvicorn will run
 app = FastAPI(
-    title="SocialSage API",       # shows in the auto-generated docs
+    title="SocialSage API",
     description="AI-powered social media growth intelligence platform",
     version="0.1.0"
 )
 
-# CORS SETTINGS
-# origins = list of frontend URLs allowed to make requests to this backend
-# In development our React app runs on localhost:5173
-# In production this would be your real domain e.g. "https://socialsage.ai"
+# CORS
 origins = [
-    "http://localhost:5173",   # Vite dev server
-    "http://localhost:3000",   # in case you ever run React on default port
+    "http://localhost:5173",
+    "http://localhost:3000",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,          # only these frontend URLs can call us
-    allow_credentials=True,         # allows cookies/auth headers to be sent
-    allow_methods=["*"],            # allow GET, POST, PUT, DELETE etc
-    allow_headers=["*"],            # allow any headers in requests
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
+app.include_router(youtube_router)
+app.include_router(analysis_router)
+# LIFECYCLE EVENTS
+# on_event("startup") runs ONCE when the server first starts
+# This is where we connect to MongoDB so it's ready before any request comes in
+@app.on_event("startup")
+async def startup():
+    print(f"🚀 Starting {settings.APP_NAME} API...")
+    await connect_to_mongo()
 
-# ROOT ENDPOINT - the simplest possible API route
-# @app.get("/") means: when someone sends a GET request to "/" return what's below
-# This is just a health check to confirm the server is running
+# on_event("shutdown") runs ONCE when the server is stopping (Ctrl+C)
+# Clean disconnection from MongoDB prevents connection leaks
+@app.on_event("shutdown")
+async def shutdown():
+    await close_mongo_connection()
+
+# ROUTES
 @app.get("/")
 def root():
     return {
-        "message": "SocialSage API is running",
+        "message": f"{settings.APP_NAME} API is running",
         "version": "0.1.0",
         "status": "healthy"
     }
 
-# HEALTH CHECK ENDPOINT
-# A dedicated /health route is standard practice for backends
-# Monitoring tools and deployment platforms ping this to check if the server is alive
 @app.get("/health")
 def health_check():
     return {
         "status": "healthy",
-        "app": os.getenv("APP_NAME", "SocialSage"),  # reads APP_NAME from .env, falls back to "SocialSage" if not found
-        "debug": os.getenv("DEBUG", "False")
+        "app": settings.APP_NAME,
+        "debug": settings.DEBUG
     }
-
-# This block only runs when you execute main.py directly (python main.py)
-# When uvicorn runs it, this block is skipped - uvicorn handles starting the server itself
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
-    # "main:app" means "find the 'app' object inside 'main.py'"
-    # reload=True means the server auto-restarts when you save changes (like Vite's hot reload)
