@@ -1,142 +1,107 @@
-from openai import OpenAI
-from app.config.settings import settings
-
-# Initialize the OpenAI client with our API key from .env
-client = OpenAI(api_key=settings.OPENAI_API_KEY)
-
 class AIService:
 
     def analyze_channel(self, channel_data: dict, videos_data: list = []):
         """
-        Takes raw YouTube channel stats and returns
-        AI-powered insights and recommendations
+        Mock AI analysis - returns realistic fake recommendations
+        based on the real channel data we fetched from YouTube.
+        We'll replace this with real OpenAI calls later.
         """
 
-        # Calculate some derived metrics before sending to AI
-        # These give the AI more meaningful numbers to work with
+        # Calculate real metrics from actual YouTube data
+        subscriber_count = channel_data.get("subscriber_count", 0)
+        video_count = channel_data.get("video_count", 0)
+        view_count = channel_data.get("view_count", 0)
 
-        # Engagement rate = average likes+comments per video / subscribers * 100
-        # Only calculate if we have video data
-        avg_views = 0
+        # Calculate average views per video - real math on real data
+        avg_views_per_video = 0
+        if video_count > 0:
+            avg_views_per_video = view_count // video_count
+
+        # Calculate engagement from recent videos if available
         avg_likes = 0
         avg_comments = 0
+        avg_video_views = 0
 
         if videos_data:
-            avg_views = sum(v.get("view_count", 0) for v in videos_data) // len(videos_data)
+            avg_video_views = sum(v.get("view_count", 0) for v in videos_data) // len(videos_data)
             avg_likes = sum(v.get("like_count", 0) for v in videos_data) // len(videos_data)
             avg_comments = sum(v.get("comment_count", 0) for v in videos_data) // len(videos_data)
 
-        # Engagement rate formula: (likes + comments) / views * 100
+        # Engagement rate - real calculation
         engagement_rate = 0
-        if avg_views > 0:
-            engagement_rate = round((avg_likes + avg_comments) / avg_views * 100, 2)
+        if avg_video_views > 0:
+            engagement_rate = round((avg_likes + avg_comments) / avg_video_views * 100, 2)
 
-        # Build the prompt - this is the most important part of the AI layer
-        # The quality of recommendations depends entirely on how well we describe
-        # the channel's situation to the AI
-        prompt = f"""
-You are SocialSage, an expert YouTube growth analyst and content strategist.
+        # Growth score - simple formula based on real numbers
+        # We'll make this smarter with real AI later
+        growth_score = 50  # base score
 
-Analyze the following YouTube channel data and provide specific, actionable recommendations.
+        # Boost score based on engagement rate
+        if engagement_rate > 5:
+            growth_score += 20
+        elif engagement_rate > 2:
+            growth_score += 10
 
-CHANNEL DATA:
-- Channel Name: {channel_data.get('title', 'Unknown')}
-- Subscribers: {channel_data.get('subscriber_count', 0):,}
-- Total Views: {channel_data.get('view_count', 0):,}
-- Total Videos: {channel_data.get('video_count', 0)}
-- Country: {channel_data.get('country', 'Unknown')}
-- Channel Created: {channel_data.get('published_at', 'Unknown')}
-- Keywords/Tags: {channel_data.get('keywords', 'None')}
+        # Boost score based on views per video vs subscribers ratio
+        if subscriber_count > 0:
+            views_to_subs_ratio = avg_views_per_video / subscriber_count
+            if views_to_subs_ratio > 0.5:
+                growth_score += 20
+            elif views_to_subs_ratio > 0.2:
+                growth_score += 10
 
-RECENT VIDEO PERFORMANCE (last {len(videos_data)} videos):
-- Average Views per Video: {avg_views:,}
-- Average Likes per Video: {avg_likes:,}
-- Average Comments per Video: {avg_comments:,}
-- Engagement Rate: {engagement_rate}%
+        # Cap score at 100
+        growth_score = min(growth_score, 100)
 
-Based on this data, provide a JSON response with exactly this structure:
-{{
-    "growth_score": <number 0-100 representing overall channel health>,
-    "summary": "<2-3 sentence overview of the channel's current situation>",
-    "strengths": [
-        "<specific strength based on the data>",
-        "<specific strength based on the data>"
-    ],
-    "weaknesses": [
-        "<specific weakness based on the data>",
-        "<specific weakness based on the data>"
-    ],
-    "recommendations": [
-        {{
-            "priority": "High",
-            "title": "<short action title>",
-            "description": "<specific actionable advice>",
-            "expected_impact": "<what improvement to expect>"
-        }},
-        {{
-            "priority": "Medium", 
-            "title": "<short action title>",
-            "description": "<specific actionable advice>",
-            "expected_impact": "<what improvement to expect>"
-        }},
-        {{
-            "priority": "Low",
-            "title": "<short action title>",
-            "description": "<specific actionable advice>",
-            "expected_impact": "<what improvement to expect>"
-        }}
-    ],
-    "content_strategy": "<2-3 sentences on what type of content to focus on>",
-    "upload_frequency_advice": "<specific advice on how often to upload>"
-}}
+        # Build mock response using real channel data
+        # so the recommendations feel relevant even without OpenAI
+        channel_name = channel_data.get("title", "Your Channel")
 
-Return ONLY the JSON object, no extra text before or after it.
-"""
+        return {
+            "growth_score": growth_score,
 
-        # Send to OpenAI
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            # gpt-3.5-turbo = cheaper, faster, good enough for structured analysis
-            # gpt-4 = smarter but costs more - switch later if needed
-            messages=[
+            "summary": f"{channel_name} has {subscriber_count:,} subscribers and {video_count} videos with an average of {avg_views_per_video:,} views per video. The channel shows {'strong' if engagement_rate > 3 else 'moderate'} engagement with a {engagement_rate}% engagement rate.",
+
+            "strengths": [
+                f"Strong total view count of {view_count:,} shows content is reaching audiences",
+                f"Engagement rate of {engagement_rate}% indicates viewers are interacting with content" if engagement_rate > 0 else "Channel has an established subscriber base to build upon",
+            ],
+
+            "weaknesses": [
+                "Upload consistency could be improved to maintain algorithm favor",
+                "Video SEO and thumbnail optimization could increase click-through rate",
+            ],
+
+            "recommendations": [
                 {
-                    # system message sets the AI's role and behavior
-                    "role": "system",
-                    "content": "You are an expert YouTube growth analyst. Always respond with valid JSON only."
+                    "priority": "High",
+                    "title": "Improve Upload Consistency",
+                    "description": "Establish a fixed upload schedule (e.g. every Tuesday and Friday). YouTube's algorithm heavily favors channels that upload consistently.",
+                    "expected_impact": "Consistent uploading can increase subscriber growth rate by up to 40%"
                 },
                 {
-                    # user message is the actual prompt with the channel data
-                    "role": "user",
-                    "content": prompt
+                    "priority": "Medium",
+                    "title": "Optimize Video Thumbnails",
+                    "description": "Use high contrast colors, readable text under 6 words, and faces showing emotion. A/B test thumbnails using YouTube Studio.",
+                    "expected_impact": "Better thumbnails can improve click-through rate from 2% to 6-8%"
+                },
+                {
+                    "priority": "Low",
+                    "title": "Add End Screens and Cards",
+                    "description": "Add end screens to every video linking to your best performing videos. This keeps viewers on your channel longer.",
+                    "expected_impact": "End screens typically increase session watch time by 15-20%"
                 }
             ],
-            # temperature controls randomness - 0.7 = balanced between creative and consistent
-            # 0 = very consistent/deterministic, 1 = very creative/random
-            temperature=0.7,
-            max_tokens=1000
-        )
 
-        # Extract the text response from OpenAI's response object
-        raw_response = response.choices[0].message.content
+            "content_strategy": f"Focus on your best performing content format and double down on it. With {subscriber_count:,} subscribers, you have enough of an audience to test new content types monthly while maintaining your core content style.",
 
-        # Parse the JSON string into a Python dictionary
-        import json
-        try:
-            analysis = json.loads(raw_response)
-        except json.JSONDecodeError:
-            # If AI didn't return valid JSON (rare), return a fallback
-            analysis = {
-                "growth_score": 50,
-                "summary": "Analysis completed but formatting error occurred.",
-                "strengths": [],
-                "weaknesses": [],
-                "recommendations": [],
-                "content_strategy": "Please try again.",
-                "upload_frequency_advice": "Please try again."
-            }
+            "upload_frequency_advice": f"With {video_count} total videos, aim to upload at least 2 times per week to maximize algorithm reach. Quality over quantity — but consistency beats both.",
 
-        return analysis
+            # Flag so we know this is mock data, not real AI
+            # We'll remove this field when we switch to real OpenAI
+            "is_mock": True
+        }
 
 
-# Singleton instance
+# Singleton instance - same as before
 ai_service = AIService()

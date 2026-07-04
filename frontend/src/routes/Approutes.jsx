@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "../components/layout/Navbar";
 import Footer from "../components/layout/Footer";
 import Home from "../pages/Home";
@@ -7,22 +7,23 @@ import Dashboard from "../pages/Dashboard";
 import NotFound from "../pages/NotFound";
 
 const AppRoutes = () => {
+  const location = useLocation();
+
+  // toLowerCase() handles both /dashboard and /Dashboard
+  const shouldHideLayout = location.pathname.toLowerCase() === "/dashboard";
+
   return (
     <>
-      {/* Navbar renders above EVERY route, since it's outside the <Routes> block */}
-      <Navbar />
+      {!shouldHideLayout && <Navbar />}
 
-      {/* Routes/Route define which page component shows for which URL path */}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        {/* path="*" catches any URL that doesn't match the above - shows 404 page */}
         <Route path="*" element={<NotFound />} />
       </Routes>
 
-      {/* Footer renders below EVERY route too, same reasoning as Navbar */}
-      <Footer />
+      {!shouldHideLayout && <Footer />}
     </>
   );
 };

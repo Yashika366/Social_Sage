@@ -9,16 +9,23 @@ import {
   HiOutlineLogout,
   HiOutlineTrendingUp,
   HiOutlineEye,
-  HiOutlineClock,
+  HiOutlineVideoCamera,
+  HiOutlineSearch,
 } from "react-icons/hi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import { Link } from "react-router-dom";
+import useChannelAnalysis from "../hooks/useChannelAnalysis";
 
 const Dashboard = () => {
-  // activePage tracks which sidebar item is selected
   const [activePage, setActivePage] = useState("overview");
 
-  // Sidebar navigation items stored as data - same array+map pattern used throughout
+  // channelInput = what the user types in the search box
+  const [channelInput, setChannelInput] = useState("");
+
+  // Pull everything we need from our custom hook
+  const { channel, analysis, loading, error, analyzeChannel } =
+    useChannelAnalysis();
+
   const sidebarLinks = [
     { id: "overview", icon: <HiOutlineHome />, label: "Overview" },
     { id: "analytics", icon: <HiOutlineChartBar />, label: "Analytics" },
@@ -26,83 +33,33 @@ const Dashboard = () => {
     { id: "settings", icon: <HiOutlineCog />, label: "Settings" },
   ];
 
-  // Fake stat cards shown at the top of the dashboard content area
-  const stats = [
-    {
-      label: "Total Subscribers",
-      value: "12,400",
-      change: "+8.2%",
-      positive: true,
-      icon: <HiOutlineUsers />,
-    },
-    {
-      label: "Total Views",
-      value: "284,000",
-      change: "+12.5%",
-      positive: true,
-      icon: <HiOutlineEye />,
-    },
-    {
-      label: "Avg. Watch Time",
-      value: "4m 32s",
-      change: "-2.1%",
-      positive: false, // negative change - we'll style this differently (red vs green)
-      icon: <HiOutlineClock />,
-    },
-    {
-      label: "Growth Score",
-      value: "74/100",
-      change: "+5pts",
-      positive: true,
-      icon: <HiOutlineTrendingUp />,
-    },
-  ];
+  // Called when user clicks "Analyze" button
+  const handleAnalyze = () => {
+    // trim() removes leading/trailing whitespace
+    if (channelInput.trim()) {
+      analyzeChannel(channelInput.trim());
+    }
+  };
 
-  // Fake AI recommendations shown in the right panel
-  const recommendations = [
-    {
-      priority: "High",
-      title: "Improve Upload Consistency",
-      description: "You haven't uploaded in 12 days. Channels that post weekly grow 3x faster.",
-      color: "#E94560",
-    },
-    {
-      priority: "Medium",
-      title: "Add End Screens",
-      description: "Only 2 of your last 10 videos have end screens. This is losing you subscribers.",
-      color: "#FBBF24",
-    },
-    {
-      priority: "Low",
-      title: "Optimize Thumbnails",
-      description: "Your click-through rate is 3.2% — adding faces to thumbnails could push it to 6%+.",
-      color: "#4ADE80",
-    },
-  ];
+  // Called when user presses Enter in the input field
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter") {
+      handleAnalyze();
+    }
+  };
 
-  // Fake chart bars for the analytics preview
-  const chartData = [
-    { day: "Mon", views: 60 },
-    { day: "Tue", views: 80 },
-    { day: "Wed", views: 45 },
-    { day: "Thu", views: 90 },
-    { day: "Fri", views: 70 },
-    { day: "Sat", views: 95 },
-    { day: "Sun", views: 75 },
-  ];
+  // Priority color mapping for recommendation cards
+  const priorityColors = {
+    High: "#E94560",
+    Medium: "#FBBF24",
+    Low: "#4ADE80",
+  };
 
   return (
-    // h-screen = full viewport height, no scrolling on the outer shell
-    // overflow-hidden = the scroll happens INSIDE panels, not on the page itself
-    // This is the standard layout for app dashboards (not marketing pages)
     <div className="h-screen bg-[#1A1A2E] flex overflow-hidden">
 
-      {/* ============ SIDEBAR ============ */}
-      {/* h-full = stretches full height of the parent (h-screen div) */}
-      {/* flex-shrink-0 = sidebar never shrinks when main content needs more space */}
+      {/* SIDEBAR */}
       <div className="w-64 h-full bg-[#0F1729] border-r border-[#2A3555] flex flex-col flex-shrink-0">
-
-        {/* LOGO AREA */}
         <div className="flex items-center gap-2 px-6 py-5 border-b border-[#2A3555]">
           <HiOutlineSparkles className="text-[#E94560] text-xl" />
           <Link to="/" className="text-xl font-bold text-[#F9F9F9]">
@@ -110,44 +67,58 @@ const Dashboard = () => {
           </Link>
         </div>
 
-        {/* CHANNEL INFO CARD - shows which channel is connected */}
-        <div className="mx-4 mt-4 p-3 bg-[#16213E] border border-[#2A3555] rounded-xl">
-          {/* Avatar circle with initials */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-[#E94560] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
-              A
-            </div>
-            <div className="overflow-hidden">
-              {/* truncate = cuts long channel names with ... instead of wrapping */}
-              <p className="text-[#F9F9F9] text-sm font-medium truncate">Alex's Channel</p>
-              <p className="text-[#B8B8C2] text-xs">12.4K subscribers</p>
+        {/* Show channel info if analysis has been done */}
+        {channel ? (
+          <div className="mx-4 mt-4 p-3 bg-[#16213E] border border-[#2A3555] rounded-xl">
+            <div className="flex items-center gap-3">
+              {/* Show channel thumbnail if available */}
+              {channel.thumbnail ? (
+                <img
+                  src={channel.thumbnail}
+                  alt={channel.title}
+                  className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-[#E94560] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                  {channel.title?.[0] || "?"}
+                </div>
+              )}
+              <div className="overflow-hidden">
+                <p className="text-[#F9F9F9] text-sm font-medium truncate">
+                  {channel.title}
+                </p>
+                <p className="text-[#B8B8C2] text-xs">
+                  {channel.subscriber_count?.toLocaleString()} subscribers
+                </p>
+              </div>
             </div>
           </div>
-        </div>
+        ) : (
+          // Show placeholder if no channel analyzed yet
+          <div className="mx-4 mt-4 p-3 bg-[#16213E] border border-dashed border-[#2A3555] rounded-xl">
+            <p className="text-[#B8B8C2] text-xs text-center">
+              No channel connected yet
+            </p>
+          </div>
+        )}
 
-        {/* NAV LINKS */}
-        {/* mt-6 pushes nav down from the channel card */}
-        {/* flex-1 makes this section grow to fill all remaining space, pushing logout to the bottom */}
         <nav className="flex-1 px-4 mt-6 flex flex-col gap-1">
           {sidebarLinks.map((link) => (
             <button
               key={link.id}
               onClick={() => setActivePage(link.id)}
-              // w-full text-left = makes button fill width and left-align text (buttons center by default)
               className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${
                 activePage === link.id
-                  ? "bg-[#E94560]/15 text-[#E94560] border border-[#E94560]/30" // active: tinted bg + accent text + accent border
-                  : "text-[#B8B8C2] hover:bg-[#16213E] hover:text-[#F9F9F9]"   // inactive: muted, subtle hover
+                  ? "bg-[#E94560]/15 text-[#E94560] border border-[#E94560]/30"
+                  : "text-[#B8B8C2] hover:bg-[#16213E] hover:text-[#F9F9F9]"
               }`}
             >
-              {/* Icon size controlled by text-lg on the parent span */}
               <span className="text-lg">{link.icon}</span>
               {link.label}
             </button>
           ))}
         </nav>
 
-        {/* LOGOUT BUTTON - pinned to the bottom because sidebar uses flex flex-col and nav has flex-1 */}
         <div className="px-4 py-4 border-t border-[#2A3555]">
           <Link
             to="/"
@@ -159,155 +130,286 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* ============ MAIN CONTENT AREA ============ */}
-      {/* flex-1 = takes all remaining horizontal space after sidebar */}
-      {/* overflow-y-auto = only THIS panel scrolls, not the whole page */}
-      {/* This keeps the sidebar fixed while content scrolls — standard dashboard UX */}
+      {/* MAIN CONTENT */}
       <div className="flex-1 overflow-y-auto">
 
-        {/* TOP NAVBAR / HEADER */}
+        {/* TOP HEADER */}
         <div className="sticky top-0 z-10 bg-[#1A1A2E]/80 backdrop-blur-md border-b border-[#2A3555] px-8 py-4 flex items-center justify-between">
-          {/* sticky top-0 = this header sticks to top of the scrollable content area (not the page) */}
           <div>
-            <h1 className="text-[#F9F9F9] font-bold text-xl">Dashboard Overview</h1>
-            <p className="text-[#B8B8C2] text-sm">Last updated: Today at 2:00 PM</p>
+            <h1 className="text-[#F9F9F9] font-bold text-xl">
+              Dashboard Overview
+            </h1>
+            <p className="text-[#B8B8C2] text-sm">
+              {channel
+                ? `Analyzing: ${channel.title}`
+                : "Enter a channel ID to get started"}
+            </p>
           </div>
-
-          {/* RIGHT SIDE: notification bell + avatar */}
           <div className="flex items-center gap-4">
-            {/* NOTIFICATION BELL with a red dot badge */}
             <button className="relative text-[#B8B8C2] hover:text-[#F9F9F9] text-xl transition-colors">
               <HiOutlineBell />
-              {/* absolute positioned dot - sits on top-right corner of the bell icon */}
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#E94560] rounded-full" />
             </button>
-
-            {/* USER AVATAR */}
-            <div className="w-9 h-9 rounded-full bg-[#E94560] flex items-center justify-center text-white text-sm font-bold cursor-pointer">
-              A
+            <div className="w-9 h-9 rounded-full bg-[#E94560] flex items-center justify-center text-white text-sm font-bold">
+              U
             </div>
           </div>
         </div>
 
-        {/* SCROLLABLE PAGE CONTENT */}
         <div className="p-8">
 
-          {/* WELCOME BANNER */}
+          {/* CHANNEL INPUT SECTION */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            // animate not whileInView because this is a full page, not a landing section
             transition={{ duration: 0.5 }}
-            className="mb-8"
+            className="mb-8 bg-[#16213E] border border-[#2A3555] rounded-2xl p-6"
           >
-            <h2 className="text-2xl font-bold text-[#F9F9F9] mb-1">
-              Welcome back, Alex 👋
+            <h2 className="text-[#F9F9F9] font-semibold mb-2">
+              Analyze a YouTube Channel
             </h2>
-            <p className="text-[#B8B8C2]">
-              Here's what's happening with your channel this week.
+            <p className="text-[#B8B8C2] text-sm mb-4">
+              Enter a YouTube Channel ID (starts with UC...) to get AI-powered
+              growth insights.
             </p>
+
+            {/* INPUT + BUTTON ROW */}
+            <div className="flex gap-3">
+              <div className="relative flex-1">
+                <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[#B8B8C2]" />
+                <input
+                  type="text"
+                  value={channelInput}
+                  onChange={(e) => setChannelInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="e.g. UCX6OQ3DkcsbYNE6H8uQQuVA"
+                  className="w-full bg-[#1A1A2E] border border-[#2A3555] focus:border-[#E94560] text-[#F9F9F9] placeholder-[#B8B8C2]/50 rounded-xl pl-11 pr-4 py-3 text-sm outline-none transition-colors duration-200"
+                />
+              </div>
+              <button
+                onClick={handleAnalyze}
+                disabled={loading || !channelInput.trim()}
+                className="bg-[#E94560] hover:bg-[#d63a52] disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold transition-colors duration-200 flex items-center gap-2"
+              >
+                <HiOutlineSparkles />
+                {loading ? "Analyzing..." : "Analyze"}
+              </button>
+            </div>
+
+            {/* EXAMPLE CHANNEL IDS */}
+            <p className="text-[#B8B8C2] text-xs mt-3">
+              Try MrBeast:{" "}
+              <button
+                onClick={() => {
+                  setChannelInput("UCX6OQ3DkcsbYNE6H8uQQuVA");
+                  analyzeChannel("UCX6OQ3DkcsbYNE6H8uQQuVA");
+                }}
+                className="text-[#E94560] hover:underline"
+              >
+                UCX6OQ3DkcsbYNE6H8uQQuVA
+              </button>
+            </p>
+
+            {/* ERROR STATE */}
+            {error && (
+              <div className="mt-4 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* LOADING STATE */}
+            {loading && (
+              <div className="mt-4 flex items-center gap-3">
+                {/* Simple animated loading dots */}
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="w-2 h-2 bg-[#E94560] rounded-full animate-bounce"
+                      style={{ animationDelay: `${i * 0.15}s` }}
+                    />
+                  ))}
+                </div>
+                <p className="text-[#B8B8C2] text-sm">
+                  Fetching data and running analysis...
+                </p>
+              </div>
+            )}
           </motion.div>
 
-          {/* STAT CARDS ROW */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {stats.map((stat, index) => (
-              <motion.div
-                key={stat.label}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: index * 0.08 }} // staggered entrance
-                className="bg-[#16213E] border border-[#2A3555] rounded-2xl p-5"
-              >
-                {/* TOP ROW: label + icon */}
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-[#B8B8C2] text-sm">{stat.label}</p>
-                  <span className="text-[#E94560] text-lg">{stat.icon}</span>
+          {/* RESULTS - only show when analysis is available */}
+          {analysis && channel && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              {/* STAT CARDS */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {[
+                  {
+                    label: "Subscribers",
+                    value: channel.subscriber_count?.toLocaleString(),
+                    icon: <HiOutlineUsers />,
+                  },
+                  {
+                    label: "Total Views",
+                    value: channel.view_count?.toLocaleString(),
+                    icon: <HiOutlineEye />,
+                  },
+                  {
+                    label: "Total Videos",
+                    value: channel.video_count?.toLocaleString(),
+                    icon: <HiOutlineVideoCamera />,
+                  },
+                  {
+                    label: "Growth Score",
+                    // analysis.growth_score comes from our AI service
+                    value: `${analysis.growth_score}/100`,
+                    icon: <HiOutlineTrendingUp />,
+                  },
+                ].map((stat, index) => (
+                  <motion.div
+                    key={stat.label}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.08 }}
+                    className="bg-[#16213E] border border-[#2A3555] rounded-2xl p-5"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[#B8B8C2] text-sm">{stat.label}</p>
+                      <span className="text-[#E94560] text-lg">{stat.icon}</span>
+                    </div>
+                    <p className="text-[#F9F9F9] text-2xl font-bold">
+                      {stat.value}
+                    </p>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* SUMMARY + RECOMMENDATIONS ROW */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+
+                {/* SUMMARY CARD - takes 2/3 width */}
+                <div className="lg:col-span-2 bg-[#16213E] border border-[#2A3555] rounded-2xl p-6">
+                  <h3 className="text-[#F9F9F9] font-semibold mb-3">
+                    Channel Summary
+                  </h3>
+                  <p className="text-[#B8B8C2] text-sm leading-relaxed mb-5">
+                    {analysis.summary}
+                  </p>
+
+                  {/* STRENGTHS + WEAKNESSES side by side */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-green-400 text-sm font-medium mb-2">
+                        ✅ Strengths
+                      </p>
+                      {analysis.strengths?.map((s, i) => (
+                        <p key={i} className="text-[#B8B8C2] text-xs mb-1">
+                          • {s}
+                        </p>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="text-red-400 text-sm font-medium mb-2">
+                        ⚠️ Weaknesses
+                      </p>
+                      {analysis.weaknesses?.map((w, i) => (
+                        <p key={i} className="text-[#B8B8C2] text-xs mb-1">
+                          • {w}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* VALUE - large bold number */}
-                <p className="text-[#F9F9F9] text-2xl font-bold mb-1">{stat.value}</p>
-
-                {/* CHANGE BADGE - green if positive, red if negative */}
-                <span className={`text-xs font-medium ${
-                  stat.positive ? "text-green-400" : "text-red-400"
-                }`}>
-                  {stat.change} this week
-                </span>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* BOTTOM ROW: Chart (left) + AI Recommendations (right) */}
-          {/* grid-cols-1 on mobile, lg:grid-cols-3 on large screens - chart takes 2 cols, recommendations take 1 */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-            {/* VIEWS CHART - takes 2/3 of the width on large screens (lg:col-span-2) */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className="lg:col-span-2 bg-[#16213E] border border-[#2A3555] rounded-2xl p-6"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[#F9F9F9] font-semibold">Views This Week</h3>
-                <span className="text-xs text-[#B8B8C2] bg-[#1A1A2E] px-3 py-1 rounded-full border border-[#2A3555]">
-                  Last 7 days
-                </span>
-              </div>
-
-              {/* CHART BARS + DAY LABELS */}
-              <div className="flex items-end gap-3 h-40 mb-2">
-                {chartData.map((bar, index) => (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-2">
-                    {/* Bar itself - height driven by the views value as a percentage */}
-                    <div
-                      className="w-full rounded-t-lg bg-gradient-to-t from-[#E94560] to-[#0F3460] transition-all duration-500"
-                      style={{ height: `${bar.views}%` }}
-                    />
-                    {/* Day label below each bar */}
-                    <span className="text-[#B8B8C2] text-xs">{bar.day}</span>
+                {/* CONTENT STRATEGY CARD - takes 1/3 width */}
+                <div className="bg-[#16213E] border border-[#2A3555] rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <HiOutlineSparkles className="text-[#E94560]" />
+                    <h3 className="text-[#F9F9F9] font-semibold">
+                      Content Strategy
+                    </h3>
                   </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* AI RECOMMENDATIONS - takes 1/3 of the width on large screens */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="bg-[#16213E] border border-[#2A3555] rounded-2xl p-6"
-            >
-              {/* HEADER */}
-              <div className="flex items-center gap-2 mb-5">
-                <HiOutlineSparkles className="text-[#E94560]" />
-                <h3 className="text-[#F9F9F9] font-semibold">AI Recommendations</h3>
+                  <p className="text-[#B8B8C2] text-sm leading-relaxed mb-4">
+                    {analysis.content_strategy}
+                  </p>
+                  <div className="bg-[#E94560]/10 border border-[#E94560]/30 rounded-xl p-3">
+                    <p className="text-xs text-[#E94560] font-medium mb-1">
+                      Upload Frequency
+                    </p>
+                    <p className="text-[#B8B8C2] text-xs">
+                      {analysis.upload_frequency_advice}
+                    </p>
+                  </div>
+                </div>
               </div>
 
-              {/* RECOMMENDATION ITEMS */}
-              <div className="flex flex-col gap-4">
-                {recommendations.map((rec, index) => (
-                  <div
-                    key={index}
-                    // border-l-2 = a left colored stripe that visually codes priority level
-                    // The color comes inline from rec.color since it's dynamic data
-                    className="pl-3 border-l-2"
-                    style={{ borderColor: rec.color }}
-                  >
-                    {/* PRIORITY BADGE */}
-                    <span
-                      className="text-xs font-semibold"
-                      style={{ color: rec.color }}
-                    >
-                      {rec.priority} Priority
+              {/* AI RECOMMENDATIONS */}
+              <div className="bg-[#16213E] border border-[#2A3555] rounded-2xl p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <HiOutlineSparkles className="text-[#E94560]" />
+                  <h3 className="text-[#F9F9F9] font-semibold">
+                    AI Recommendations
+                  </h3>
+                  {/* Show mock badge if using mock data */}
+                  {analysis.is_mock && (
+                    <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
+                      Demo Mode
                     </span>
-                    <p className="text-[#F9F9F9] text-sm font-medium mt-0.5">{rec.title}</p>
-                    <p className="text-[#B8B8C2] text-xs mt-1 leading-relaxed">{rec.description}</p>
-                  </div>
-                ))}
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {analysis.recommendations?.map((rec, index) => (
+                    <div
+                      key={index}
+                      className="bg-[#1A1A2E] border border-[#2A3555] rounded-xl p-4"
+                    >
+                      {/* Priority badge */}
+                      <span
+                        className="text-xs font-semibold px-2 py-0.5 rounded-full mb-3 inline-block"
+                        style={{
+                          color: priorityColors[rec.priority],
+                          backgroundColor: `${priorityColors[rec.priority]}20`,
+                          border: `1px solid ${priorityColors[rec.priority]}40`,
+                        }}
+                      >
+                        {rec.priority} Priority
+                      </span>
+                      <h4 className="text-[#F9F9F9] text-sm font-semibold mb-2">
+                        {rec.title}
+                      </h4>
+                      <p className="text-[#B8B8C2] text-xs leading-relaxed mb-3">
+                        {rec.description}
+                      </p>
+                      <p className="text-xs text-green-400">
+                        📈 {rec.expected_impact}
+                      </p>
+                    </div>
+                  ))}
+                </div>
               </div>
             </motion.div>
-          </div>
+          )}
+
+          {/* EMPTY STATE - shown when no analysis done yet */}
+          {!analysis && !loading && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-center py-20"
+            >
+              <HiOutlineSparkles className="text-[#E94560] text-5xl mx-auto mb-4" />
+              <h3 className="text-[#F9F9F9] font-semibold text-xl mb-2">
+                Ready to analyze
+              </h3>
+              <p className="text-[#B8B8C2]">
+                Enter a YouTube channel ID above to get your AI growth report.
+              </p>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>
