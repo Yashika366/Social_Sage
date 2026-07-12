@@ -1,28 +1,30 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
+import useAuth from "../hooks/useAuth";
 import {
   HiOutlineHome,
   HiOutlineChartBar,
   HiOutlineUsers,
   HiOutlineCog,
   HiOutlineBell,
-  HiOutlineLogout,
   HiOutlineTrendingUp,
   HiOutlineEye,
   HiOutlineVideoCamera,
   HiOutlineSearch,
+  HiOutlineUser,
 } from "react-icons/hi";
 import { HiOutlineSparkles } from "react-icons/hi2";
 import { Link } from "react-router-dom";
 import useChannelAnalysis from "../hooks/useChannelAnalysis";
+import ProfileDropdown from "../components/dashboard/ProfileDropdown";
 
 const Dashboard = () => {
   const [activePage, setActivePage] = useState("overview");
-
-  // channelInput = what the user types in the search box
   const [channelInput, setChannelInput] = useState("");
 
-  // Pull everything we need from our custom hook
+  const { getUser } = useAuth();
+  const user = getUser();
+
   const { channel, analysis, loading, error, analyzeChannel } =
     useChannelAnalysis();
 
@@ -33,22 +35,18 @@ const Dashboard = () => {
     { id: "settings", icon: <HiOutlineCog />, label: "Settings" },
   ];
 
-  // Called when user clicks "Analyze" button
   const handleAnalyze = () => {
-    // trim() removes leading/trailing whitespace
     if (channelInput.trim()) {
       analyzeChannel(channelInput.trim());
     }
   };
 
-  // Called when user presses Enter in the input field
   const handleKeyDown = (e) => {
     if (e.key === "Enter") {
       handleAnalyze();
     }
   };
 
-  // Priority color mapping for recommendation cards
   const priorityColors = {
     High: "#E94560",
     Medium: "#FBBF24",
@@ -60,6 +58,8 @@ const Dashboard = () => {
 
       {/* SIDEBAR */}
       <div className="w-64 h-full bg-[#0F1729] border-r border-[#2A3555] flex flex-col flex-shrink-0">
+
+        {/* LOGO */}
         <div className="flex items-center gap-2 px-6 py-5 border-b border-[#2A3555]">
           <HiOutlineSparkles className="text-[#E94560] text-xl" />
           <Link to="/" className="text-xl font-bold text-[#F9F9F9]">
@@ -67,11 +67,10 @@ const Dashboard = () => {
           </Link>
         </div>
 
-        {/* Show channel info if analysis has been done */}
+        {/* CHANNEL INFO */}
         {channel ? (
           <div className="mx-4 mt-4 p-3 bg-[#16213E] border border-[#2A3555] rounded-xl">
             <div className="flex items-center gap-3">
-              {/* Show channel thumbnail if available */}
               {channel.thumbnail ? (
                 <img
                   src={channel.thumbnail}
@@ -94,7 +93,6 @@ const Dashboard = () => {
             </div>
           </div>
         ) : (
-          // Show placeholder if no channel analyzed yet
           <div className="mx-4 mt-4 p-3 bg-[#16213E] border border-dashed border-[#2A3555] rounded-xl">
             <p className="text-[#B8B8C2] text-xs text-center">
               No channel connected yet
@@ -102,6 +100,7 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* NAV LINKS */}
         <nav className="flex-1 px-4 mt-6 flex flex-col gap-1">
           {sidebarLinks.map((link) => (
             <button
@@ -119,14 +118,21 @@ const Dashboard = () => {
           ))}
         </nav>
 
+        {/* BOTTOM USER INFO */}
         <div className="px-4 py-4 border-t border-[#2A3555]">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-[#B8B8C2] hover:text-[#E94560] hover:bg-[#E94560]/10 transition-all duration-200"
-          >
-            <HiOutlineLogout className="text-lg" />
-            Log Out
-          </Link>
+          <div className="flex items-center gap-3 px-4 py-3 rounded-xl">
+            <div className="w-8 h-8 rounded-full bg-[#E94560] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+              {user?.name?.[0]?.toUpperCase() || "U"}
+            </div>
+            <div className="overflow-hidden">
+              <p className="text-[#F9F9F9] text-sm font-medium truncate">
+                {user?.name || "Account"}
+              </p>
+              <p className="text-[#B8B8C2] text-xs truncate">
+                {user?.email || ""}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -142,17 +148,19 @@ const Dashboard = () => {
             <p className="text-[#B8B8C2] text-sm">
               {channel
                 ? `Analyzing: ${channel.title}`
-                : "Enter a channel ID to get started"}
+                : `Welcome back, ${user?.name || "there"} 👋`}
             </p>
           </div>
+
+          {/* RIGHT SIDE - notification bell + profile dropdown */}
           <div className="flex items-center gap-4">
             <button className="relative text-[#B8B8C2] hover:text-[#F9F9F9] text-xl transition-colors">
               <HiOutlineBell />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#E94560] rounded-full" />
             </button>
-            <div className="w-9 h-9 rounded-full bg-[#E94560] flex items-center justify-center text-white text-sm font-bold">
-              U
-            </div>
+
+            {/* ProfileDropdown replaces the plain avatar */}
+            <ProfileDropdown />
           </div>
         </div>
 
@@ -196,7 +204,7 @@ const Dashboard = () => {
               </button>
             </div>
 
-            {/* EXAMPLE CHANNEL IDS */}
+            {/* EXAMPLE CHANNEL ID */}
             <p className="text-[#B8B8C2] text-xs mt-3">
               Try MrBeast:{" "}
               <button
@@ -220,7 +228,6 @@ const Dashboard = () => {
             {/* LOADING STATE */}
             {loading && (
               <div className="mt-4 flex items-center gap-3">
-                {/* Simple animated loading dots */}
                 <div className="flex gap-1">
                   {[0, 1, 2].map((i) => (
                     <div
@@ -237,7 +244,7 @@ const Dashboard = () => {
             )}
           </motion.div>
 
-          {/* RESULTS - only show when analysis is available */}
+          {/* RESULTS */}
           {analysis && channel && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -264,7 +271,6 @@ const Dashboard = () => {
                   },
                   {
                     label: "Growth Score",
-                    // analysis.growth_score comes from our AI service
                     value: `${analysis.growth_score}/100`,
                     icon: <HiOutlineTrendingUp />,
                   },
@@ -287,10 +293,10 @@ const Dashboard = () => {
                 ))}
               </div>
 
-              {/* SUMMARY + RECOMMENDATIONS ROW */}
+              {/* SUMMARY + CONTENT STRATEGY ROW */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
 
-                {/* SUMMARY CARD - takes 2/3 width */}
+                {/* SUMMARY CARD */}
                 <div className="lg:col-span-2 bg-[#16213E] border border-[#2A3555] rounded-2xl p-6">
                   <h3 className="text-[#F9F9F9] font-semibold mb-3">
                     Channel Summary
@@ -298,8 +304,6 @@ const Dashboard = () => {
                   <p className="text-[#B8B8C2] text-sm leading-relaxed mb-5">
                     {analysis.summary}
                   </p>
-
-                  {/* STRENGTHS + WEAKNESSES side by side */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <p className="text-green-400 text-sm font-medium mb-2">
@@ -324,7 +328,7 @@ const Dashboard = () => {
                   </div>
                 </div>
 
-                {/* CONTENT STRATEGY CARD - takes 1/3 width */}
+                {/* CONTENT STRATEGY CARD */}
                 <div className="bg-[#16213E] border border-[#2A3555] rounded-2xl p-6">
                   <div className="flex items-center gap-2 mb-3">
                     <HiOutlineSparkles className="text-[#E94560]" />
@@ -353,21 +357,18 @@ const Dashboard = () => {
                   <h3 className="text-[#F9F9F9] font-semibold">
                     AI Recommendations
                   </h3>
-                  {/* Show mock badge if using mock data */}
                   {analysis.is_mock && (
                     <span className="text-xs bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 px-2 py-0.5 rounded-full">
                       Demo Mode
                     </span>
                   )}
                 </div>
-
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {analysis.recommendations?.map((rec, index) => (
                     <div
                       key={index}
                       className="bg-[#1A1A2E] border border-[#2A3555] rounded-xl p-4"
                     >
-                      {/* Priority badge */}
                       <span
                         className="text-xs font-semibold px-2 py-0.5 rounded-full mb-3 inline-block"
                         style={{
@@ -394,7 +395,7 @@ const Dashboard = () => {
             </motion.div>
           )}
 
-          {/* EMPTY STATE - shown when no analysis done yet */}
+          {/* EMPTY STATE */}
           {!analysis && !loading && (
             <motion.div
               initial={{ opacity: 0 }}

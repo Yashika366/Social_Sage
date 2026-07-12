@@ -10,6 +10,7 @@ from app.database.connection import connect_to_mongo, close_mongo_connection
 from app.config.settings import settings
 from app.api.youtube import router as youtube_router
 from app.api.analysis import router as analysis_router
+from app.api.auth import router as auth_router
 
 load_dotenv()
 
@@ -34,6 +35,7 @@ app.add_middleware(
 )
 app.include_router(youtube_router)
 app.include_router(analysis_router)
+app.include_router(auth_router)
 # LIFECYCLE EVENTS
 # on_event("startup") runs ONCE when the server first starts
 # This is where we connect to MongoDB so it's ready before any request comes in
